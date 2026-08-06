@@ -1,0 +1,6 @@
+// --- Configuration ---
+    private static final String PINATA_JWT = System.getenv("PINATA_JWT") != null ? System.getenv("PINATA_JWT") : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1MTkzYjhkNi04MjFkLTQ1MTktYTNiMi0xNWE3NWNjZDcwYjAiLCJlbWFpbCI6InN5ZWRyaWFzdWRkaW4ucy5zQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI0YmNiNzU4YzRmOWIxNDg4YjVmMSIsInNjb3BlZEtleVNlY3JldCI6IjJkNzk3MGE2MWY1NjExZWY0NjQ1ZTI1ZDY1N2E5ZWIxZWVhNTllOGI3MzFjOTJjYTg0YjdjNjBiZmU0OTBiYTkiLCJleHAiOjE4MTc0NTcxNDd9.lCRC7g8sfBd9KsfIVYeB3vJ6Dxw_Cph8iD00UJS5knk";
+    private static final String CONTRACT_ADDRESS = "0xac91a07e79F7300153aD54e9b61F7B6FeCC4d7BE"; 
+    private static final String PRIVATE_KEY = System.getenv("SEPOLIA_PRIVATE_KEY") != null ? System.getenv("SEPOLIA_PRIVATE_KEY") : "38cea97b600035168a73d8ba391285de33cfd827b158334503df33c4d93c6b13";
+    private static final String ALCHEMY_RPC_URL = "https://ethereum-sepolia-rpc.publicnode.com";
+    private static final String AES_SECRET_KEY = "SecureVaultKey16"; 
