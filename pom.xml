@@ -5,18 +5,40 @@
   <version>0.0.1-SNAPSHOT</version>
 
   <dependencies>
+    <!-- Spring Boot Web Starter for REST API -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+        <version>3.2.5</version>
+    </dependency>
+
+    <!-- Force modern SLF4J API version to override old Web3j transitive imports -->
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>2.0.13</version>
+    </dependency>
+
     <!-- Web3j for Ethereum/Sepolia Interaction -->
     <dependency>
         <groupId>org.web3j</groupId>
         <artifactId>core</artifactId>
         <version>4.9.8</version>
+        <exclusions>
+            <exclusion>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+            </exclusion>
+        </exclusions>
     </dependency>
+
     <!-- OkHttp for Pinata IPFS Uploads -->
     <dependency>
         <groupId>com.squareup.okhttp3</groupId>
         <artifactId>okhttp</artifactId>
         <version>4.10.0</version>
     </dependency>
+
     <!-- AWS SDK v2 for S3 Standard Storage -->
     <dependency>
         <groupId>software.amazon.awssdk</groupId>
@@ -34,6 +56,12 @@
         <configuration>
           <release>20</release>
         </configuration>
+      </plugin>
+      <!-- Spring Boot Build Plugin -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>3.2.5</version>
       </plugin>
     </plugins>
   </build>
