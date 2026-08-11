@@ -1,0 +1,29 @@
+contact address : 
+0x9D7f74d0C41E726EC95884E0e97Fa6129e3b5E99
+
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract ADSTVault {
+    struct Record {
+        string ipfsCid;
+        string dataHash;
+        string dataType;
+    }
+
+    mapping(string => Record) private records;
+
+    // This event guarantees the fileId is visible on Etherscan logs
+    event DataStored(string indexed fileId, string dataType);
+
+    function storeSensitiveData(string memory fileId, string memory ipfsCid, string memory dataHash, string memory dataType) public {
+        records[fileId] = Record(ipfsCid, dataHash, dataType);
+        emit DataStored(fileId, dataType); 
+    }
+
+    function getSensitiveData(string memory fileId) public view returns (string memory, string memory, string memory, uint256) {
+        Record memory rec = records[fileId];
+        return (rec.ipfsCid, rec.dataHash, rec.dataType, block.timestamp); 
+    }
+}
