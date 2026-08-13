@@ -1,8 +1,29 @@
 package com.adst.backend;
-import okhttp3.*;
+import java.io.File;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.web3j.abi.FunctionEncoder;
 import org.web3j.abi.datatypes.Function;
 import org.web3j.abi.datatypes.Utf8String;
@@ -16,22 +37,17 @@ import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.http.HttpService;
 import org.web3j.utils.Numeric;
-import org.web3j.crypto.RawTransaction;
-import org.web3j.crypto.TransactionEncoder;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.util.*;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 @SpringBootApplication
 @RestController
 @RequestMapping("/api/adst")
+@CrossOrigin(origins = "*")
 public class ADSTApplication {
 
     private static final String PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1MTkzYjhkNi04MjFkLTQ1MTktYTNiMi0xNWE3NWNjZDcwYjAiLCJlbWFpbCI6InN5ZWRyaWFzdWRkaW4ucy5zQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI0YmNiNzU4YzRmOWIxNDg4YjVmMSIsInNjb3BlZEtleVNlY3JldCI6IjJkNzk3MGE2MWY1NjExZWY0NjQ1ZTI1ZDY1N2E5ZWIxZWVhNTllOGI3MzFjOTJjYTg0YjdjNjBiZmU0OTBiYTkiLCJleHAiOjE4MTc0NTcxNDd9.lCRC7g8sfBd9KsfIVYeB3vJ6Dxw_Cph8iD00UJS5knk"; 
@@ -89,23 +105,79 @@ public class ADSTApplication {
     }
 
     @GetMapping("/retrieve/{fileId}")
-    public Map<String, Object> retrieveFile(@PathVariable String fileId) {
+    public Map<String, Object> retrieveFile(@PathVariable("fileId") String fileId) {
         Map<String, Object> response = new HashMap<>();
         try {
-            String filePath = "Standard_Storage_Local/" + fileId + ".dat";
-            File file = new File(filePath);
+            String encryptedData = "";
+            String routingSource = "";
 
-            if (!file.exists()) {
-                response.put("status", "FAILED");
-                response.put("error", "File ID not found in local storage.");
-                return response;
+            // 1. Check Local Storage First (Standard files)
+            String filePath = "Standard_Storage_Local/" + fileId + ".dat";
+            File localFile = new File(filePath);
+
+            if (localFile.exists()) {
+                encryptedData = Files.readString(localFile.toPath(), StandardCharsets.UTF_8);
+                routingSource = "STANDARD (Local Storage)";
+            } else {
+                // 2. If not local, query the Blockchain for the IPFS CID (Sensitive files)
+                Web3j web3j = Web3j.build(new HttpService(ALCHEMY_RPC_URL));
+                try {
+                    Function function = new Function(
+                            "getSensitiveData",
+                            Arrays.asList(new org.web3j.abi.datatypes.Utf8String(fileId)),
+                            Arrays.asList(
+                                    new org.web3j.abi.TypeReference<org.web3j.abi.datatypes.Utf8String>() {},
+                                    new org.web3j.abi.TypeReference<org.web3j.abi.datatypes.Utf8String>() {},
+                                    new org.web3j.abi.TypeReference<org.web3j.abi.datatypes.Utf8String>() {},
+                                    new org.web3j.abi.TypeReference<org.web3j.abi.datatypes.generated.Uint256>() {}
+                            )
+                    );
+
+                    String encodedFunction = org.web3j.abi.FunctionEncoder.encode(function);
+                    
+                    org.web3j.protocol.core.methods.response.EthCall ethCall = web3j.ethCall(
+                            org.web3j.protocol.core.methods.request.Transaction.createEthCallTransaction(
+                                    null, CONTRACT_ADDRESS, encodedFunction),
+                            org.web3j.protocol.core.DefaultBlockParameterName.LATEST
+                    ).send();
+
+                    List<org.web3j.abi.datatypes.Type> result = org.web3j.abi.FunctionReturnDecoder.decode(
+                            ethCall.getValue(), function.getOutputParameters());
+
+                    if (result.isEmpty() || result.get(0).getValue().toString().isEmpty()) {
+                        response.put("status", "FAILED");
+                        response.put("error", "File ID not found locally or on the blockchain.");
+                        return response;
+                    }
+
+                    String ipfsCid = result.get(0).getValue().toString();
+                    routingSource = "SENSITIVE (Blockchain & IPFS - CID: " + ipfsCid + ")";
+
+                    // 3. Fetch encrypted data from Pinata IPFS Gateway
+                    OkHttpClient client = new OkHttpClient();
+                    Request request = new Request.Builder()
+                            .url("https://gateway.pinata.cloud/ipfs/" + ipfsCid)
+                            .get()
+                            .build();
+
+                    try (Response pinataResponse = client.newCall(request).execute()) {
+                        if (!pinataResponse.isSuccessful()) {
+                            throw new RuntimeException("Failed to fetch file from IPFS gateway.");
+                        }
+                        encryptedData = pinataResponse.body().string();
+                    }
+
+                } finally {
+                    web3j.shutdown();
+                }
             }
 
-            String encryptedData = Files.readString(file.toPath(), StandardCharsets.UTF_8);
+            // 4. Decrypt and return payload
             String decryptedPayload = decryptAES(encryptedData, AES_SECRET_KEY);
 
             response.put("status", "SUCCESS");
             response.put("fileId", fileId);
+            response.put("routingSource", routingSource);
             response.put("decryptedContent", decryptedPayload);
 
         } catch (Exception e) {
